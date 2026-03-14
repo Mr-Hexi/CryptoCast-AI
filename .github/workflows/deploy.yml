@@ -1,0 +1,86 @@
+name: Deploy CryptoCast-AI to Azure VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy files to VM via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "."
+          target: ${{ secrets.SERVER_PATH }}
+          rm: false
+
+      - name: Deploy on VM
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            PROJECT_PATH="${{ secrets.SERVER_PATH }}"
+            BACKEND_PATH="$PROJECT_PATH/backend"
+            FRONTEND_PATH="$PROJECT_PATH/frontend"
+
+            echo "=== Ensure backend env ==="
+            cat > "$BACKEND_PATH/.env" << 'ENVEOF'
+            DJANGO_SECRET_KEY="${{ secrets.DJANGO_SECRET_KEY }}"
+            DJANGO_DEBUG=False
+            DJANGO_ALLOWED_HOSTS=cryptocastai.duckdns.org,cryptocastaiapi.duckdns.org,127.0.0.1,localhost
+            CORS_ALLOW_ALL_ORIGINS=False
+            CORS_ALLOWED_ORIGINS=https://cryptocastai.duckdns.org,https://cryptocastaiapi.duckdns.org
+            CSRF_TRUSTED_ORIGINS=https://cryptocastai.duckdns.org,https://cryptocastaiapi.duckdns.org
+            CELERY_BROKER_URL=redis://127.0.0.1:6379/0
+            CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/0
+            MLFLOW_TRACKING_URI=http://127.0.0.1:5000
+            ENVEOF
+
+            echo "=== Ensure frontend env ==="
+            cat > "$FRONTEND_PATH/.env" << 'ENVEOF'
+            VITE_API_BASE_URL=https://cryptocastaiapi.duckdns.org/api
+            ENVEOF
+
+            echo "=== Backend install + migrate ==="
+            cd "$BACKEND_PATH"
+            if [ ! -d venv ]; then
+              python3 -m venv venv
+            fi
+            venv/bin/pip install --upgrade pip
+            venv/bin/pip install -r ../requirements.txt
+            venv/bin/pip install gunicorn
+            venv/bin/python manage.py migrate --noinput
+            venv/bin/python manage.py collectstatic --noinput
+
+            echo "=== Frontend install + build ==="
+            cd "$FRONTEND_PATH"
+            npm install --silent
+            npm run build
+
+            echo "=== Restart PM2 apps ==="
+            pm2 restart btc-mlflow || pm2 start "$PROJECT_PATH/deploy/run_mlflow.sh" --name btc-mlflow
+            pm2 restart btc-api || pm2 start "$PROJECT_PATH/deploy/run_gunicorn.sh" --name btc-api
+            pm2 restart btc-celery-worker || pm2 start "$PROJECT_PATH/deploy/run_celery_worker.sh" --name btc-celery-worker
+            pm2 restart btc-celery-beat || pm2 start "$PROJECT_PATH/deploy/run_celery_beat.sh" --name btc-celery-beat
+            pm2 save
+
+            echo "=== Restart system services ==="
+            sudo systemctl restart redis-server || true
+            sudo systemctl restart nginx
+
+            echo "=== Done ==="

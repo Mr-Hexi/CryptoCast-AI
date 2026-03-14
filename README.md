@@ -25,9 +25,22 @@ python ml_pipeline/models/train_lstm.py
 Navigate to the `backend` directory, apply migrations, and run the server:
 ```bash
 cd backend
+cp .env.example .env
 python manage.py migrate
 python manage.py runserver
 ```
+
+## Frontend API Configuration
+The frontend API URL is environment-driven:
+
+```bash
+cd frontend
+cp .env.example .env
+```
+
+- Local default fallback: `http://127.0.0.1:8000/api`
+- Production should set:
+  - `VITE_API_BASE_URL=https://your-api-domain/api`
 
 ## Automated Execution (Celery)
 This project supports scheduled, sequential asset updates through Celery + Beat.

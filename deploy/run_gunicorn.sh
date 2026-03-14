@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+
+PROJECT_PATH=${PROJECT_PATH:-/home/azureuser/CryptoCast-AI}
+cd "$PROJECT_PATH/backend"
+
+if [ -f "$PROJECT_PATH/backend/.env" ]; then
+  set -a
+  source "$PROJECT_PATH/backend/.env"
+  set +a
+fi
+
+source venv/bin/activate
+
+gunicorn --workers 2 --timeout 180 \
+  --bind unix:"$PROJECT_PATH/backend/btcproject.sock" \
+  backend.wsgi:application
