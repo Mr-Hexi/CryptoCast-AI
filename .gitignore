@@ -1,0 +1,66 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local assistant / workspace metadata
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs
+*.log
+logs/
+
+# Django / app local runtime files
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+
+# MLflow / training artifacts (generated)
+mlartifacts/
+backend/mlartifacts/
+mlruns/
+mlflow.db
+backend/mlflow.db
+
+# Local data artifacts (generated)
+data/btc_raw.csv
+data/*.pkl
+data/temp_*.csv
+data/scheduled_updates/
+btc_forecast/data/temp_*.csv
+backend/prediction/celerybeat-schedule*
+ml_pipeline/models/compare_output.txt

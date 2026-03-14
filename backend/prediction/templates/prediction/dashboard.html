@@ -1,0 +1,194 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLOps Forecast Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'prediction/css/styles.css' %}">
+</head>
+
+<body>
+    <div class="dashboard-wrapper">
+        <header class="dashboard-header mb-4">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h1 class="h3 mb-0 text-white fw-bold">BTC Forecast MLOps Dashboard</h1>
+                        <p class="text-white-50 mb-0 mt-1">Real-time MLflow metrics, registry stages, and predictions
+                        </p>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-primary" id="refreshBtn">
+                            <span class="spinner-border spinner-border-sm d-none me-2" id="refreshSpinner" role="status"
+                                aria-hidden="true"></span>
+                            Refresh Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid content-container">
+            <!-- Top Row: Metrics and Info -->
+            <div class="row g-4 mb-4">
+
+                <!-- Model Info Card -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="card glass-card h-100">
+                        <div class="card-header border-0 pb-0">
+                            <h5 class="card-title fw-semibold">Model Registry Info</h5>
+                        </div>
+                        <div class="card-body">
+                            <div
+                                class="info-row d-flex justify-content-between align-items-center mb-3 p-3 rounded info-box-lstm">
+                                <div>
+                                    <h6 class="mb-1 text-uppercase text-muted small fw-bold">LSTM Model</h6>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-primary me-2" id="lstmStage">Loading...</span>
+                                        <span class="small text-secondary fw-medium">Ver: <span
+                                                id="lstmVersion">-</span></span>
+                                    </div>
+                                </div>
+                                <div class="prediction-highlight text-end">
+                                    <div class="small text-muted mb-1">Next Hr Pred:</div>
+                                    <div class="h5 mb-0 fw-bold text-primary" id="lstmNextPrice">...</div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="info-row d-flex justify-content-between align-items-center p-3 rounded info-box-gru">
+                                <div>
+                                    <h6 class="mb-1 text-uppercase text-muted small fw-bold">GRU Model</h6>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-success me-2" id="gruStage">Loading...</span>
+                                        <span class="small text-secondary fw-medium">Ver: <span
+                                                id="gruVersion">-</span></span>
+                                    </div>
+                                </div>
+                                <div class="prediction-highlight text-end">
+                                    <div class="small text-muted mb-1">Next Hr Pred:</div>
+                                    <div class="h5 mb-0 fw-bold text-success" id="gruNextPrice">...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics Table Card -->
+                <div class="col-lg-8 col-md-6">
+                    <div class="card glass-card h-100">
+                        <div class="card-header border-0 pb-0">
+                            <h5 class="card-title fw-semibold">Testing Metrics</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle custom-table mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Model</th>
+                                            <th>MAE (Mean Abs Error)</th>
+                                            <th>RMSE (Root Mean Sq Error)</th>
+                                            <th>Training Loss</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="color-indicator bg-primary me-2"></div>
+                                                    <span class="fw-medium">LSTM</span>
+                                                </div>
+                                            </td>
+                                            <td id="lstmMae">...</td>
+                                            <td id="lstmRmse">...</td>
+                                            <td id="lstmTrainLoss">...</td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="color-indicator bg-success me-2"></div>
+                                                    <span class="fw-medium">GRU</span>
+                                                </div>
+                                            </td>
+                                            <td id="gruMae">...</td>
+                                            <td id="gruRmse">...</td>
+                                            <td id="gruTrainLoss">...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Row: Comparison Chart -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card glass-card">
+                        <div class="card-header border-0 justify-content-between d-flex align-items-center pb-0">
+                            <h5 class="card-title fw-semibold m-0">Forecast Comparison (Next 24 Hours)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height:400px; width:100%">
+                                <canvas id="comparisonChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Row: Individual Charts -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-6">
+                    <div class="card glass-card">
+                        <div class="card-header border-0 pb-0">
+                            <h5 class="card-title fw-semibold">LSTM Model Forecast</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height:300px; width:100%">
+                                <canvas id="lstmChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card glass-card">
+                        <div class="card-header border-0 pb-0">
+                            <h5 class="card-title fw-semibold">GRU Model Forecast</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height:300px; width:100%">
+                                <canvas id="gruChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Configuration Injection (for dynamic URLs) -->
+    <script>
+        const API_GET_METRICS = "{% url 'model_metrics' %}";
+        const API_GET_INFO = "{% url 'model_info' %}";
+        const API_GET_FORECAST = "{% url 'model_forecasts' %}";
+    </script>
+    <!-- Custom JS -->
+    <script src="{% static 'prediction/js/dashboard.js' %}"></script>
+</body>
+
+</html>

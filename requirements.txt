@@ -1,0 +1,12 @@
+Django>=5.0
+djangorestframework
+pandas
+numpy
+scikit-learn
+yfinance
+ta
+tensorflow
+mlflow
+joblib
+celery>=5.3
+redis>=5.0
