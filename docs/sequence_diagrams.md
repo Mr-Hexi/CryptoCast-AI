@@ -53,15 +53,7 @@ sequenceDiagram
         D->>D: Recalculate indicators
     end
 
-    D-->>C: JSON Response
-    {
-        "status": "success",
-        "model_used": "BTC_LSTM@production",
-        "forecast": [
-            {"date": "2025-03-17 01:00", "predicted_price": 68421.53},
-            ...
-        ]
-    }
+    D-->>C: Return forecast with 24 hourly predictions
 ```
 
 **Key Steps:**
@@ -187,12 +179,7 @@ sequenceDiagram
         T-->>W: Success
     end
 
-    D-->>U: 202 Accepted
-    {
-        "status": "queued",
-        "run_type": "manual_hourly",
-        "root_task_id": "abc123"
-    }
+    D-->>U: Return 202 Accepted with task ID
 ```
 
 **Key Steps:**
@@ -220,39 +207,18 @@ sequenceDiagram
     D->>M: mlflow.search_runs()
     M-->>D: Run data (metrics, params)
     D->>D: Parse and format metrics
-    D-->>F: JSON Response
-    {
-        "lstm": {
-            "test_mse": 123456.78,
-            "test_mae": 234.56,
-            "test_rmse": 351.37,
-            "r2_score": 0.94
-        },
-        "gru": { ... }
-    }
+    D-->>F: Return LSTM & GRU metrics (MSE, MAE, RMSE, R²)
 
     F->>D: GET /api/model/info/
     D->>R: client.search_registered_models()
     R-->>D: Model versions and stages
     D->>D: Extract latest versions
-    D-->>F: JSON Response
-    {
-        "lstm": {
-            "current_version": "5",
-            "stage": "production",
-            "latest_version": "7"
-        },
-        "gru": { ... }
-    }
+    D-->>F: Return model registry info (version, stage)
 
     F->>D: GET /api/model/forecasts/
     D->>D: Trigger lazy-load for both models
     D->>D: Generate 24h forecasts (reuse prediction logic)
-    D-->>F: JSON Response
-    {
-        "lstm": [{"date": "...", "price": ...}, ...],
-        "gru": [ ... ]
-    }
+    D-->>F: Return forecast arrays for both models
 ```
 
 **Key Steps:**
